@@ -8,10 +8,11 @@ __global__ void cuda_hello() {
     printf("Hello World !\n");
 }
 
-void MatrixInit(float *M, int n, int p) {
+void MatrixInit(float* M, int n, int p) {
+    float max = RAND_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
-            M[i][j] = (rand()/RAND_MAX)*2-1;
+            M[j+i*p] = (rand()/max)*2-1;
         }
     }
 }
@@ -20,61 +21,63 @@ void MatrixPrint(float *M, int n, int p){
     for(int x = 0 ; x < n ; x++) {
         printf(" (");
         for(int y = 0 ; y < p ; y++){
-            printf("%d     ", M[x][y]);
+            printf("%f     ", M[y+x*p]);
         }
         printf(")\n");
     }
+    printf("\n");
 }
 
 void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
-            Mout[i][j] = M1[i][j] + M2[i][j];
+            Mout[j+i*p] = M1[j+i*p] + M2[j+i*p];
         }
     }
 }
 
-__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
-
-    
-}
-
-__global__ void matMul(float* d_M, float* d_N, float* d_P, int width, int length) {
-    int row = blockIdx.y*width+threadIdx.y;
-    int col = blockIdx.x*width+threadIdx.x;
-    if(row<width && col <length) {
-        float product_val = 0
-        for(int k=0;k<width;k++) {
-            product_val += d_M[row*width+k]*d_N[k*width+col];
+__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout) {
+    for (int i = 0; i < gridDim.x; i++) {
+        for (int j = 0; j < blockDim.x; j++) {
+            Mout[j + i * blockDim.x] = M1[j + i * blockDim.x] + M2[j + i * blockDim.x];
         }
-        d_P[row*width+col] = product_val;
     }
 }
+
 int main() {
     cuda_hello<<<1,1>>>();
+    int N = 3;
+    int P = 2;
+    float* Mat1;
+    float* Mat2;
 
-    float *mat1, *mat2, *prod;
-    float *d_mat1, *d_mat2, *d_prod;
+    Mat1 = (float*)malloc(sizeof(float) * (N*P));
+    Mat2 = (float*)malloc(sizeof(float) * (N*P));
 
-    // Allocate memory
-    mat1   = (float*)malloc(sizeof(float) * M);
-    mat2   = (float*)malloc(sizeof(float) * N);
-    d_prod = (float*)malloc(sizeof(float) * (M*N));
+    MatrixInit(Mat1, N, P);
+    MatrixInit(Mat2, N, P);
 
-    // Initialize array
-    for(int i = 0; i < N; i++){
-        a[i] = 1.0f;
-        b[i] = 2.0f;
-    }
+    MatrixPrint(Mat1, N, P);
+    MatrixPrint(Mat2, N, P);
 
-    cudaMalloc((void**)&d_a, sizeof(float)*N);
-    cudaMalloc((void**)&d_b, sizeof(float)*N);
-    cudaMalloc((void**)&d_out, sizeof(float)*N);
+    float* MatOut;
+    MatOut = (float*)malloc(sizeof(float) * (N*P));
 
-    cudaMemcpy(d_a, a, sizeof(float) * N, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_b, b, sizeof(float) * N, cudaMemcpyHostToDevice);
+    MatrixAdd(Mat1, Mat2, MatOut, N, P);
 
-    matMul(float* [1,2,3], float* [2,4,6], float* d_P, int width);
+    MatrixPrint(MatOut, N, P);
+
+    free(Mat1);
+    free(Mat2);
+    free(MatOut);
+    //Fin du travail dans le GPU
+
+    //Début du travail dans le CPU
+
+    
+
+
+
     cudaDeviceSynchronize();
     return 0 ;
 }
