@@ -18,6 +18,14 @@ void MatrixInit0(float *M, int n, int p){
     }
 }
 
+void MatrixInitTest(float *M, int n, int p){
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i * p] = 1 ;
+        }
+    }
+}
+
 void MatrixPrint(float *M, int n, int p){
     printf("Matrice : ");
     for(int i=0; i<n; i++){
@@ -111,15 +119,15 @@ int main(){
     C1_kernel = (float*)malloc((sizeof (float))* 6 * 5 * 5);
 
 
-    MatrixInit(raw_data, 32, 32);
+    MatrixInitTest(raw_data, 32, 32);
     MatrixInit0(C1_data, 6, 28*28);
     MatrixInit0(S1_data, 6, 14*14);
-    MatrixInit(C1_kernel, 6, 5*5);
-    /*MatrixPrint(raw_data, 32, 32);
+    MatrixInitTest(C1_kernel, 6, 5*5);
+    MatrixPrint(raw_data, 32, 32);
     printf("\n\n");
     MatrixPrint(C1_kernel, 6, 5*5);
     printf("\n\n");
-*/
+
     cudaMalloc((void**)&d_raw_data, sizeof(float)*(32*32));
     cudaMalloc((void**)&d_C1_data, sizeof(float)*(6*28*28));
     cudaMalloc((void**)&d_C1_kernel, sizeof(float)*(6*5*5));
