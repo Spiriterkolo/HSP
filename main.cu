@@ -2,52 +2,70 @@
 // Created by theogill92 on 11/14/22.
 //
 
+//
+// Created by theogill92 on 11/14/22.
+//
+
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
-__global__ void cuda_hello() {
-    printf("Hello World !\n");
-}
-
-void MatrixInit(float* M, int n, int p) {
+void MatrixInit(float *M, int n, int p){
     float max = RAND_MAX;
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
-            M[j+i*p] = (rand()/max);
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i*p] = rand() / max ;
         }
     }
 }
 
-// Initie tout à 0 pour le TP2
-void MatrixInit0(float* M, int n, int p) {
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < p; j++) {
-            M[j+i*p] = 0;
+void MatrixInit0(float *M, int n, int p){
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i * p] = 0 ;
+        }
+    }
+}
+
+void MatrixInit1(float *M, int n, int p){
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i * p] = 1 ;
+        }
+    }
+}
+
+void MatrixInitTest(float *M, int n, int p){
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i * p] = j ;
         }
     }
 }
 
 void MatrixPrint(float *M, int n, int p){
-    for(int x = 0 ; x < n ; x++) {
-        printf(" (");
-        for(int y = 0 ; y < p ; y++){
-            printf("%f     ", M[y+x*p]);
+    printf("Matrice : ");
+    for(int i=0; i<n; i++){
+        printf("\n");
+        for(int j=0; j<p; j++){
+            printf("%.2f ", M[j + i*p]);
         }
-        printf(")\n");
     }
+    printf("\n");
     printf("\n");
 }
 
 void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
-            Mout[j+i*p] = M1[j+i*p] + M2[j+i*p];
+            Mout[j + i * p] = M1[j + i * p] + M2[j + i * p];
         }
     }
 }
 
-__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout) {
-    for (int i = 0; i < gridDim.x; i++) {
-        for (int j = 0; j < blockDim.x; j++) {
+__global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
+    for (int i = 0; i < gridDim.x; i++){
+        for (int j = 0; j < blockDim.x; j++){
             Mout[j + i * blockDim.x] = M1[j + i * blockDim.x] + M2[j + i * blockDim.x];
         }
     }
@@ -79,108 +97,141 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
     }
 }
 
-__global__ void cudaMatrixConvolution(float *M1, float *M2, float *Mout, int n, int p){
-    for (int i = 0; i < 5; i++) {
-        for (int j = 0; j<5; j++) {
-            Mout[]=M1[blockIdx.x][]
-        }
+__device__ float activation_tanh(float M){
+    return tanhf(M);
 }
 
-int main() {
-    cuda_hello<<<1,1>>>();
-    int N = 3;
-    int P = 3;
-    float *Mat1, *Mat2, *MatOut;
-    float *d_Mat1, *d_Mat2, *d_MatOut;
+__device__ float activation_softmax(float *M){
+
+}
+
+__global__ void cudaConvolution(float *data, float *kernel, float *Cout){
+    float sum = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            sum += data[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)] * kernel[i + j * 5 + blockIdx.x * 5 * 5];
+        }
+    }
+    Cout[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_tanh(sum);
+}
+
+__global__ void cudaDownSampling(float *Conved, float *Cout){
+    float mean = 0;
+    for (int i = 0; i < 2; i++){
+        for (int j = 0; j < 2; j++){
+            mean += Conved[(2 * threadIdx.y + j) + (2 * threadIdx.x + i) * 2 * blockDim.y +  blockIdx.x * 4 * blockDim.x * blockDim.y];
+        }
+    }
+    Cout[threadIdx.y + threadIdx.x * blockDim.x + blockIdx.x * blockDim.x * blockDim.x] = mean/4;
+}
+
+// Pas besoin de Flatten mais il faut s'assurer que les poids dans Python correspondent bien aux bonnes entrées pour le premier Dense.
+
+__global__ void cudaDensetanh(float *Mentree, float *W, float *B float *Msortie) {
+    //cudaMatrixMult(W, Mentree, Msortie);
+    //cudaMatrixAdd(Msortie, B, Msortie);
+    float sum = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            sum += data[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)] * kernel[i + j * 5 + blockIdx.x * 5 * 5];
+        }
+    }
+    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_tanh(sum);
+}
+
+__global__ void cudaDensesoftmax(float *Mentree, float *W, float *B float *Msortie) {
+    //cudaMatrixMult(Mentree, W, Msortie)
+    //cudaMatrixAdd(Msortie, B, Msortie)
+    float sum = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            sum += W[i + j * 5 + blockIdx.x * 5 * 5] * Mentree[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)];
+        }
+    }
+    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_softmax(sum);
+}
+int main(){
+    //float *M;
+    //M = (float*)malloc((sizeof (float))* n * p);
+    //MatrixInit(M, n, p);
+    //MatrixPrint(M, n, p);
+    //free(M);
+
+    float *raw_data, *C1_data, *C2_data, *S1_data, *C1_kernel, *S2_data, *C2_kernel;
+    float *d_raw_data, *d_C1_data,*d_C2_data, *d_C1_kernel, *d_S1_data, *d_S2_data, *d_C2_kernel;
+    dim3 blocks(6, 1, 1);
+    dim3 threads(28,28,1);
+    dim3 threads2(14,14,1);
+    dim3 blocks3(16, 1, 1);
+    dim3 threads3(10,10,1);
+    dim3 threads4(5,5,1);
+
+    raw_data = (float*)malloc((sizeof (float))* 32 * 32);
+    C1_data = (float*)malloc((sizeof (float))* 6 * 28 *28);
+    S1_data = (float*)malloc((sizeof (float))* 6 * 14 * 14);
+    C1_kernel = (float*)malloc((sizeof (float))* 6 * 5 * 5);
+    C2_data = (float*)malloc((sizeof (float))* 16 * 10 * 10);
+    S2_data = (float*)malloc((sizeof (float))* 16 * 5 * 5);
+    C2_kernel = (float*)malloc((sizeof (float))* 6 * 5 * 5);
 
 
-    Mat1 = (float*)malloc(sizeof(float) * (N*P));
-    Mat2 = (float*)malloc(sizeof(float) * (N*P));
-    MatOut = (float*)malloc(sizeof(float) * (N*P));
+    MatrixInit(raw_data, 32, 32);
+    MatrixInit0(C1_data, 6, 28*28);
+    MatrixInit0(C2_data, 16, 5*5);
+    MatrixInit0(S1_data, 6, 14*14);
+    MatrixInit0(S2_data, 16, 5*5);
+    MatrixInit(C1_kernel, 6, 5*5);
+    MatrixInit(C2_kernel, 6, 5*5);
 
-    MatrixInit(Mat1, N, P);
-    MatrixInit(Mat2, N, P);
+    //MatrixPrint(raw_data, 32, 32);
+    //printf("\n\n");
+    //MatrixPrint(C1_kernel, 6, 5*5);
+    //printf("\n\n");
 
-    MatrixPrint(Mat1, N, P);
-    MatrixPrint(Mat2, N, P);
+    cudaMalloc((void**)&d_raw_data, sizeof(float)*(32*32));
+    cudaMalloc((void**)&d_C1_data, sizeof(float)*(6*28*28));
+    cudaMalloc((void**)&d_C2_data, sizeof(float)*(16*10*10));
+    cudaMalloc((void**)&d_C1_kernel, sizeof(float)*(6*5*5));
+    cudaMalloc((void**)&d_S1_data, sizeof(float)*(6*14*14));
+    cudaMalloc((void**)&d_S2_data, sizeof(float)*(16*5*5));
+    cudaMalloc((void**)&d_C2_kernel, sizeof(float)*(6*5*5));
 
-    MatrixAdd(Mat1, Mat2, MatOut, N, P);
-    MatrixPrint(MatOut, N, P);
+    cudaMemcpy(d_raw_data, raw_data, sizeof(float) * (32*32), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C1_data, C1_data, sizeof(float) * (6*28*28), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C2_data, C2_data, sizeof(float) * (16*10*10), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C1_kernel, C1_kernel, sizeof(float) * (6*5*5), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_S1_data, S1_data, sizeof(float) * (6*14*14), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_S2_data, S2_data, sizeof(float) * (16*5*5), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_C2_kernel, C2_kernel, sizeof(float) * (6*5*5), cudaMemcpyHostToDevice);
 
-    //Fin du premier travail dans le CPU (3 fonctions)
+    cudaConvolution<<<blocks,threads>>>(d_raw_data, d_C1_kernel, d_C1_data);
+    cudaDownSampling<<<blocks,threads2>>>(d_C1_data,d_S1_data);
+    cudaConvolution<<<blocks3,threads3>>>(d_S1_data, d_C2_kernel, d_C2_data);
+    cudaDownSampling<<<blocks3,threads4>>>(d_C2_data,d_S2_data);
 
-    //Début du premier travail dans le GPU
+    cudaMemcpy(C1_data, d_C1_data, sizeof(float) * (6*28*28), cudaMemcpyDeviceToHost);
+    cudaMemcpy(S1_data, d_S1_data, sizeof(float) * (6*14*14), cudaMemcpyDeviceToHost);
+    cudaMemcpy(C2_data, d_C2_data, sizeof(float) * (16*10*10), cudaMemcpyDeviceToHost);
+    cudaMemcpy(S2_data, d_S2_data, sizeof(float) * (16*5*5), cudaMemcpyDeviceToHost);
 
-    cudaMalloc((void**)&d_Mat1, sizeof(float)*(N*P));
-    cudaMalloc((void**)&d_Mat2, sizeof(float)*(N*P));
-    cudaMalloc((void**)&d_MatOut, sizeof(float)*(N*P));
+    //MatrixPrint(C1_data, 6, 28*28);
+    //MatrixPrint(S1_data, 6, 14*14);
 
-    cudaMemcpy(d_Mat1, Mat1, sizeof(float) * (N*P), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_Mat2, Mat2, sizeof(float) * (N*P), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_MatOut, MatOut, sizeof(float) * (N*P), cudaMemcpyHostToDevice);
-
-    cudaMatrixAdd<<<N,P>>>(d_Mat1, d_Mat2, d_MatOut);
-
-    cudaMemcpy(MatOut, d_MatOut, sizeof(float) * (N*P), cudaMemcpyDeviceToHost);
-
-    MatrixPrint(MatOut, N, P);
-
-    //Fin du premier travail dans le GPU
-
-    //Début du deuxième travail dans le CPU
-
-    MatrixMult(Mat1, Mat2, MatOut, N);
-    MatrixPrint(MatOut, N, N);
-
-    //Fin du deuxième travail dans le CPU
-
-    //Début du deuxième travail dans le GPU
-
-    cudaMatrixMult<<<N,N>>>(d_Mat1,d_Mat2,d_MatOut);
-
-    cudaMemcpy(MatOut, d_MatOut, sizeof(float) * (N*N), cudaMemcpyDeviceToHost);
-
-    MatrixPrint(MatOut, N, N);
-    //Fin du deuxième travail dans le GPU
-
-    cudaFree(d_Mat1);
-    cudaFree(d_Mat2);
-    cudaFree(d_MatOut);
-
-    free(Mat1);
-    free(Mat2);
-    free(MatOut);
-
-    //Début TP2
-
-    float *raw_data, *C1_data, *S1_data, *C1_kernel;
-
-    int N2 = 32;
-    int D = 6;
-    int M = 28;
-    int Q = 5;
-    int P2 = 14;
-
-    raw_data = (float*)malloc(sizeof(float) * (N2*N2));
-    C1_data = (float*)malloc(sizeof(float) * (D*M*M));
-    S1_data = (float*)malloc(sizeof(float) * (D*P2*P2));
-    C1_kernel = (float*)malloc(sizeof(float) * (D*Q*Q));
-
-    MatrixInit(raw_data, N2, N2);
-    MatrixInit0(C1_data, D, M*M);
-    MatrixInit0(S1_data, D, P2*P2);
-    MatrixInit(C1_kernel, D, Q*Q);
-
-    MatrixPrint(raw_data, N2, N2);
-    MatrixPrint(C1_data, D, M*M);
-    MatrixPrint(S1_data, D, P2*P2);
-    MatrixPrint(C1_kernel, D, Q*Q);
+    cudaFree(d_raw_data);
+    cudaFree(d_C1_kernel);
+    cudaFree(d_C1_data);
+    cudaFree(d_S1_data);
+    cudaFree(d_S2_data);
+    cudaFree(d_C2_kernel);
+    cudaFree(d_C2_data);
 
     free(raw_data);
     free(C1_data);
     free(S1_data);
     free(C1_kernel);
-
-    cudaDeviceSynchronize();
-    return 0 ;
+    free(S2_data);
+    free(C2_kernel);
+    free(C2_data);
+    return 0;
 }
+
