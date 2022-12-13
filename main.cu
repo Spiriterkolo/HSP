@@ -12,7 +12,16 @@ void MatrixInit(float* M, int n, int p) {
     float max = RAND_MAX;
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
-            M[j+i*p] = (rand()/max)*2-1;
+            M[j+i*p] = (rand()/max);
+        }
+    }
+}
+
+// Initie tout à 0 pour le TP2
+void MatrixInit0(float* M, int n, int p) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < p; j++) {
+            M[j+i*p] = 0;
         }
     }
 }
@@ -68,6 +77,13 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
             Mout[j+i*gridDim.x] = sum;
         }
     }
+}
+
+__global__ void cudaMatrixConvolution(float *M1, float *M2, float *Mout, int n, int p){
+    for (int i = 0; i < 5; i++) {
+        for (int j = 0; j<5; j++) {
+            Mout[]=M1[blockIdx.x][]
+        }
 }
 
 int main() {
@@ -134,6 +150,36 @@ int main() {
     free(Mat1);
     free(Mat2);
     free(MatOut);
+
+    //Début TP2
+
+    float *raw_data, *C1_data, *S1_data, *C1_kernel;
+
+    int N2 = 32;
+    int D = 6;
+    int M = 28;
+    int Q = 5;
+    int P2 = 14;
+
+    raw_data = (float*)malloc(sizeof(float) * (N2*N2));
+    C1_data = (float*)malloc(sizeof(float) * (D*M*M));
+    S1_data = (float*)malloc(sizeof(float) * (D*P2*P2));
+    C1_kernel = (float*)malloc(sizeof(float) * (D*Q*Q));
+
+    MatrixInit(raw_data, N2, N2);
+    MatrixInit0(C1_data, D, M*M);
+    MatrixInit0(S1_data, D, P2*P2);
+    MatrixInit(C1_kernel, D, Q*Q);
+
+    MatrixPrint(raw_data, N2, N2);
+    MatrixPrint(C1_data, D, M*M);
+    MatrixPrint(S1_data, D, P2*P2);
+    MatrixPrint(C1_kernel, D, Q*Q);
+
+    free(raw_data);
+    free(C1_data);
+    free(S1_data);
+    free(C1_kernel);
 
     cudaDeviceSynchronize();
     return 0 ;
