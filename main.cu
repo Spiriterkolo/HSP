@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 void MatrixInit(float *M, int n, int p){
      float max = RAND_MAX;
@@ -22,6 +23,14 @@ void MatrixInitTest(float *M, int n, int p){
     for(int i=0; i<n; i++){
         for(int j=0; j<p; j++){
             M[j + i * p] = 1 ;
+        }
+    }
+}
+
+void MatrixInitTest2(float *M, int n, int p){
+    for(int i=0; i<n; i++){
+        for(int j=0; j<p; j++){
+            M[j + i * p] = j ;
         }
     }
 }
@@ -56,23 +65,31 @@ __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
 
 __global__ void cudaConvolution(float *data, float *kernel, float *Cout){
     float sum = 0;
-    for (int i = 0; i < 5; i++){
-        for (int j = 0; j < 5; j++){
-            sum += data[(threadIdx.y + j) + (threadIdx.x + i) * blockDim.y] * kernel[j + i * 5 + blockIdx.x * 5 * 5];
+    int x = threadIdx.x;
+    int y = threadIdx.y;
+    int k = blockIdx.x;
+    for (int j = 0; j < 5; j++){
+        for (int i = 0; i < 5; i++){
+            sum += data[(x + i)+ (y + j) * (blockDim.x + 4)] * kernel[i + j * 5 + k * 5 * 5];
         }
     }
-    Cout[threadIdx.y + threadIdx.x * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = sum;
+    Cout[x + y * blockDim.x + k * blockDim.x * blockDim.y] = sum;
+}
+
+__device__ float activation_tanh(float M) {
+    return tanhf(M);
 }
 
 __global__ void cudaDownSampling(float *Conved, float *Cout){
     float mean = 0;
     for (int i = 0; i < 2; i++){
         for (int j = 0; j < 2; j++){
-            mean += Conved[(2 * threadIdx.y + j) + (2 * threadIdx.x + i) * 2 * blockDim.y +  blockIdx.x * 4 * blockDim.x * blockDim.y];
+            mean += Conved[(2 * threadIdx.x + i) + (2 * threadIdx.y + j) * 2 * blockDim.x +  blockIdx.x * 4 * blockDim.x * blockDim.y];
         }
     }
-    Cout[threadIdx.y + threadIdx.x * blockDim.x + blockIdx.x * blockDim.x * blockDim.x] = mean/4;
+    Cout[threadIdx.x + threadIdx.y * blockDim.x + blockIdx.x * blockDim.x * blockDim.x] = activation_tanh(mean/4);
 }
+
 
 void MatrixMult(float *M1, float *M2, float *Mout, int n){
     float sum;
@@ -119,10 +136,10 @@ int main(){
     C1_kernel = (float*)malloc((sizeof (float))* 6 * 5 * 5);
 
 
-    MatrixInitTest(raw_data, 32, 32);
+    MatrixInit(raw_data, 32, 32);
     MatrixInit0(C1_data, 6, 28*28);
     MatrixInit0(S1_data, 6, 14*14);
-    MatrixInitTest(C1_kernel, 6, 5*5);
+    MatrixInit(C1_kernel, 6, 5*5);
     MatrixPrint(raw_data, 32, 32);
     printf("\n\n");
     MatrixPrint(C1_kernel, 6, 5*5);
@@ -145,7 +162,11 @@ int main(){
     cudaMemcpy(S1_data, d_S1_data, sizeof(float) * (6*14*14), cudaMemcpyDeviceToHost);
 
     MatrixPrint(C1_data, 6, 28*28);
-    //MatrixPrint(S1_data, 6, 14*14);
+    //Tested for kernel only composed of 1 and data only composed of 1. Give indeed 25 for each pixel value.
+    //Tested for data (0, 1, 2, ... , 31) and it works
+    //The dimensions are correct
+    MatrixPrint(S1_data, 6, 14*14);
+    //Have the correct dimensions. Checked that the value of a pixel is the mean of the 4 corresponding pixels
 
     cudaFree(d_raw_data);
     cudaFree(d_C1_kernel);
