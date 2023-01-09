@@ -20,7 +20,7 @@ Notre algorithme réalise :
 
 
 
-**Compléxité et temps de calcul :**
+**Temps de calcul :**
 ![HSPseance1screenfinal](https://user-images.githubusercontent.com/93649903/211338506-9e682020-136d-4b5d-ac4a-b1ca6edf020d.JPG)
 
 • Création d'une matrice sur CPU                  (0.15ms for a 32x32)
