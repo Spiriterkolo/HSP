@@ -32,11 +32,15 @@ Compléxité et temps de calcul :
 • Multiplication de deux matrices NxN sur GPU     (0.078ms for two matrix 32x32)  (0.085ms for two matrix 1000x1000)
 
 Caractéristiques GPU :
+
 Intel Xeon E5-2650 v2
+
 8C/16T @ 2.6GHz-3.4GHz
+
 394.6 GFLOPS = 3.94 ∗ 1011 FLOPS
+
 TDP : 95 W
+
 Price : 1166$
+
 Released date : Q3-2013
-
-
