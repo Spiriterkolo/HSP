@@ -56,11 +56,7 @@ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
 }
 
 __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
-    for (int i = 0; i < gridDim.x; i++){
-        for (int j = 0; j < blockDim.x; j++){
-            Mout[j + i * blockDim.x] = M1[j + i * blockDim.x] + M2[j + i * blockDim.x];
-        }
-    }
+            Mout[threadIdx.x + blockIdx.x * blockDim.x] = M1[threadIdx.x + blockIdx.x * blockDim.x] + M2[threadIdx.x + blockIdx.x * blockDim.x];
 }
 
 __global__ void zero_pad(float *MO, float *Pout){
@@ -84,7 +80,7 @@ __device__ float activation_tanh(float M) {
     return tanhf(M);
 }
 
-__device__ void activation_softmax(float *M, float *Mout, float max){
+__device__ void activation_softmax(float *M, float max){
     int shape = int(sizeof(*M)/ sizeof(max));
     float sum = 0;
     float esum;
@@ -92,7 +88,7 @@ __device__ void activation_softmax(float *M, float *Mout, float max){
         sum += M[i];
     }
     esum = expf(sum-max);
-    Mout[threadIdx.x] = expf(M[threadIdx.x]-max) / esum;
+    M[threadIdx.x] = expf(M[threadIdx.x]-max) / esum;
 }
 
 __global__ void cudaDownSampling(float *Conved, float *Cout){
@@ -130,38 +126,51 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
         }
     }
 }
-/*
-__global__ void cudaDensetanh(float *Mentree, float *W, float *B float *Msortie) {
-    //cudaMatrixMult(W, Mentree, Msortie);
-    //cudaMatrixAdd(Msortie, B, Msortie);
-    float sum = 0;
-    for (int i = 0; i < 5; i++){
-        for (int j = 0; j < 5; j++){
-            sum += data[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)] * kernel[i + j * 5 + blockIdx.x * 5 * 5];
-        }
+
+__global__ void cudaDensetanh1(float *Min, float *W, float *B, float *Mout) {
+    for (int i = 0; i < 120; i++) {
+        Mout[i] = Min[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] *
+                  W[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y +
+                    i * gridDim.x * blockDim.x * blockDim.y];
     }
-    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_tanh(sum);
+    for (int j = 0; j < 120; j++){
+        Mout[j] = activation_tanh(Mout[j]+B[j]);
+    }
 }
 
-__global__ void cudaDensesoftmax(float *Mentree, float *W, float *B float *Msortie) {
-    //cudaMatrixMult(Mentree, W, Msortie)
-    //cudaMatrixAdd(Msortie, B, Msortie)
-    float sum = 0;
-    for (int i = 0; i < 5; i++){
-        for (int j = 0; j < 5; j++){
-            sum += W[i + j * 5 + blockIdx.x * 5 * 5] * Mentree[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)];
+__global__ void cudaDensetanh2(float *Min, float *W, float *B, float *Mout) {
+    for (int i = 0; i < 84; i++) {
+        Mout[i] = Min[threadIdx.x] *
+                  W[threadIdx.x + i * blockDim.x];
+    }
+    for (int j = 0; j < 84; j++){
+        Mout[j] = activation_tanh(Mout[j]+B[j]);
+    }
+}
+
+
+__global__ void cudaDensesoftmax(float *Min, float *W, float *B, float *Mout) {
+    for (int i = 0; i < 10; i++) {
+        Mout[i] = Min[threadIdx.x] *
+                  W[threadIdx.x + i * blockDim.x];
+    }
+    float max = Mout[0];
+    for (int j = 0; j < 10; j++) {
+        Mout[j] += B[j];
+        if(Mout[j] > max){
+            max = Mout[j];
         }
     }
-    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_softmax(sum);
+    activation_softmax(Mout, max);
 }
-*/
+
 int main(){
     //float *M;
     //M = (float*)malloc((sizeof (float))* n * p);
     //MatrixInit(M, n, p);
     //MatrixPrint(M, n, p);
     //free(M);
-/*
+
     float *raw_data, *C1_data, *S1_data, *C1_kernel;
     float *d_raw_data, *d_C1_data, *d_C1_kernel, *d_S1_data;
     dim3 blocks(6, 1, 1);
@@ -216,31 +225,5 @@ int main(){
     free(S1_data);
     free(C1_kernel);
     return 0;
-    */
-    float *raw_data, *pad;
-    float *draw_data, *dpad;
 
-    raw_data = (float*)malloc((sizeof (float))* 28 * 28);
-    pad = (float*)malloc((sizeof (float))* 32 * 32);
-
-    MatrixInit(raw_data, 28, 28);
-    MatrixInit0(pad, 32, 32);
-
-    cudaMalloc((void**)&draw_data, sizeof(float)*(28*28));
-    cudaMalloc((void**)&dpad, sizeof(float)*(32*32));
-
-    cudaMemcpy(draw_data, raw_data, sizeof(float) * (28*28), cudaMemcpyHostToDevice);
-    cudaMemcpy(dpad, pad, sizeof(float) * (32*32), cudaMemcpyHostToDevice);
-
-    zero_pad<<<28,28>>>(draw_data, dpad);
-
-    cudaMemcpy(pad, dpad, sizeof(float) * (32*32), cudaMemcpyDeviceToHost);
-
-    MatrixPrint(pad, 32, 32);
-
-    cudaFree(dpad);
-    cudaFree(draw_data);
-
-    free(pad);
-    free(raw_data);
 }
