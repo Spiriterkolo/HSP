@@ -20,7 +20,7 @@ Notre algorithme réalise :
 
 
 
-Compléxité et temps de calcul :
+**Compléxité et temps de calcul :**
 ![HSPseance1screenfinal](https://user-images.githubusercontent.com/93649903/211338506-9e682020-136d-4b5d-ac4a-b1ca6edf020d.JPG)
 
 • Création d'une matrice sur CPU                  (0.15ms for a 32x32)
@@ -35,7 +35,8 @@ Compléxité et temps de calcul :
 
 • Multiplication de deux matrices NxN sur GPU     (0.078ms for two matrix 32x32)  (0.085ms for two matrix 1000x1000)
 
-
+\bigskip
+\bigskip
 
 Caractéristiques GPU :
 
