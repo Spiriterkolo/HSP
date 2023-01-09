@@ -59,6 +59,32 @@ __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
             Mout[threadIdx.x + blockIdx.x * blockDim.x] = M1[threadIdx.x + blockIdx.x * blockDim.x] + M2[threadIdx.x + blockIdx.x * blockDim.x];
 }
 
+void MatrixMult(float *M1, float *M2, float *Mout, int n){
+    float sum;
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            sum = 0;
+            for (int k = 0; k < n; k++) {
+                sum += M1[j+i*n+k]*M2[j+(i+k)*n];
+            }
+            Mout[j+i*n] = sum;
+        }
+    }
+}
+
+__global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
+    float sum;
+    for (int i = 0; i < gridDim.x; i++) {
+        for (int j = 0; j < gridDim.x; j++) {
+            sum = 0;
+            for (int k = 0; k < gridDim.x; k++) {
+                sum += M1[j+i*gridDim.x+k]*M2[j+(i+k)*gridDim.x];
+            }
+            Mout[j+i*gridDim.x] = sum;
+        }
+    }
+}
+
 __global__ void zero_pad(float *MO, float *Pout){
     Pout[threadIdx.x + 2 + (blockIdx.x+2) * (blockDim.x+4)] = MO[threadIdx.x + blockIdx.x * blockDim.x];
 }
@@ -99,32 +125,6 @@ __global__ void cudaDownSampling(float *Conved, float *Cout){
         }
     }
     Cout[threadIdx.x + threadIdx.y * blockDim.x + blockIdx.x * blockDim.x * blockDim.x] = activation_tanh(mean/4);
-}
-
-void MatrixMult(float *M1, float *M2, float *Mout, int n){
-    float sum;
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            sum = 0;
-            for (int k = 0; k < n; k++) {
-                sum += M1[j+i*n+k]*M2[j+(i+k)*n];
-            }
-            Mout[j+i*n] = sum;
-        }
-    }
-}
-
-__global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
-    float sum;
-    for (int i = 0; i < gridDim.x; i++) {
-        for (int j = 0; j < gridDim.x; j++) {
-            sum = 0;
-            for (int k = 0; k < gridDim.x; k++) {
-                sum += M1[j+i*gridDim.x+k]*M2[j+(i+k)*gridDim.x];
-            }
-            Mout[j+i*gridDim.x] = sum;
-        }
-    }
 }
 
 __global__ void cudaDensetanh1(float *Min, float *W, float *B, float *Mout) {
