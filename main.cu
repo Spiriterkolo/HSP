@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+//Initialisation de la matrice avec des valeurs aléatoires entre 0 et 1
 void MatrixInit(float *M, int n, int p){
      float max = RAND_MAX;
      for(int i=0; i<n; i++){
@@ -11,6 +12,7 @@ void MatrixInit(float *M, int n, int p){
      }
 }
 
+//Initialisation avec uniquement des 0
 void MatrixInit0(float *M, int n, int p){
     for(int i=0; i<n; i++){
         for(int j=0; j<p; j++){
@@ -19,6 +21,7 @@ void MatrixInit0(float *M, int n, int p){
     }
 }
 
+//Initialisation avec uniquement des 1
 void MatrixInitTest(float *M, int n, int p){
     for(int i=0; i<n; i++){
         for(int j=0; j<p; j++){
@@ -27,6 +30,7 @@ void MatrixInitTest(float *M, int n, int p){
     }
 }
 
+//Initialisation avec des valeurs qui augmentent avec le rang
 void MatrixInitTest2(float *M, int n, int p){
     for(int i=0; i<n; i++){
         for(int j=0; j<p; j++){
@@ -35,6 +39,7 @@ void MatrixInitTest2(float *M, int n, int p){
     }
 }
 
+//Permet de print la matrice
 void MatrixPrint(float *M, int n, int p){
     printf("Matrice : ");
     for(int i=0; i<n; i++){
@@ -47,6 +52,7 @@ void MatrixPrint(float *M, int n, int p){
     printf("\n");
 }
 
+//Addition de matrices sur CPU
 void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
     for (int i = 0; i < n; i++) {
         for (int j = 0; j < p; j++) {
@@ -55,10 +61,12 @@ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
     }
 }
 
+//Addition de matrices sur GPU
 __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
             Mout[threadIdx.x + blockIdx.x * blockDim.x] = M1[threadIdx.x + blockIdx.x * blockDim.x] + M2[threadIdx.x + blockIdx.x * blockDim.x];
 }
 
+//Multiplication de 2 matrices sur CPU
 void MatrixMult(float *M1, float *M2, float *Mout, int n){
     float sum;
     for (int i = 0; i < n; i++) {
@@ -72,6 +80,7 @@ void MatrixMult(float *M1, float *M2, float *Mout, int n){
     }
 }
 
+//Multiplication de 2 matrices sur GPU
 __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
     float sum;
     for (int i = 0; i < gridDim.x; i++) {
@@ -85,10 +94,12 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
     }
 }
 
+//Zero_padding pour la première convolution
 __global__ void zero_pad(float *MO, float *Pout){
     Pout[threadIdx.x + 2 + (blockIdx.x+2) * (blockDim.x+4)] = MO[threadIdx.x + blockIdx.x * blockDim.x];
 }
 
+//Layer de convolution
 __global__ void cudaConvolution(float *data, float *kernel, float *Cout){
     float sum = 0;
     int x = threadIdx.x;
@@ -102,10 +113,12 @@ __global__ void cudaConvolution(float *data, float *kernel, float *Cout){
     Cout[x + y * blockDim.x + k * blockDim.x * blockDim.y] = sum;
 }
 
+//Fonction d'activation tanh
 __device__ float activation_tanh(float M) {
     return tanhf(M);
 }
 
+//Fonction d'activation softmax
 __device__ void activation_softmax(float *M, float max){
     int shape = int(sizeof(*M)/ sizeof(max));
     float sum = 0;
@@ -117,6 +130,7 @@ __device__ void activation_softmax(float *M, float max){
     M[threadIdx.x] = expf(M[threadIdx.x]-max) / esum;
 }
 
+//Pooling layer
 __global__ void cudaDownSampling(float *Conved, float *Cout){
     float mean = 0;
     for (int i = 0; i < 2; i++){
@@ -127,6 +141,7 @@ __global__ void cudaDownSampling(float *Conved, float *Cout){
     Cout[threadIdx.x + threadIdx.y * blockDim.x + blockIdx.x * blockDim.x * blockDim.x] = activation_tanh(mean/4);
 }
 
+//Premier dense layer
 __global__ void cudaDensetanh1(float *Min, float *W, float *B, float *Mout) {
     for (int i = 0; i < 120; i++) {
         Mout[i] = Min[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] *
@@ -138,6 +153,7 @@ __global__ void cudaDensetanh1(float *Min, float *W, float *B, float *Mout) {
     }
 }
 
+//Second dense layer
 __global__ void cudaDensetanh2(float *Min, float *W, float *B, float *Mout) {
     for (int i = 0; i < 84; i++) {
         Mout[i] = Min[threadIdx.x] *
@@ -148,7 +164,7 @@ __global__ void cudaDensetanh2(float *Min, float *W, float *B, float *Mout) {
     }
 }
 
-
+//Troisième Dense layer
 __global__ void cudaDensesoftmax(float *Min, float *W, float *B, float *Mout) {
     for (int i = 0; i < 10; i++) {
         Mout[i] = Min[threadIdx.x] *
