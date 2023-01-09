@@ -80,6 +80,15 @@ __device__ float activation_tanh(float M) {
     return tanhf(M);
 }
 
+__device__ float activation_softmax(float *M, float *Mout, float max){
+    shape = sizeof(*M)/ sizeof(max);
+    for(i=0; i < shape; i++){
+        sum += M[i];
+    }
+    esum = expf(sum-max);
+    Mout[threadIdx] = expf(M[threadIdx]-max) / esum;
+}
+
 __global__ void cudaDownSampling(float *Conved, float *Cout){
     float mean = 0;
     for (int i = 0; i < 2; i++){
@@ -115,6 +124,30 @@ __global__ void cudaMatrixMult(float *M1, float *M2, float *Mout){
             Mout[j+i*gridDim.x] = sum;
         }
     }
+}
+
+__global__ void cudaDensetanh(float *Mentree, float *W, float *B float *Msortie) {
+    //cudaMatrixMult(W, Mentree, Msortie);
+    //cudaMatrixAdd(Msortie, B, Msortie);
+    float sum = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            sum += data[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)] * kernel[i + j * 5 + blockIdx.x * 5 * 5];
+        }
+    }
+    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_tanh(sum);
+}
+
+__global__ void cudaDensesoftmax(float *Mentree, float *W, float *B float *Msortie) {
+    //cudaMatrixMult(Mentree, W, Msortie)
+    //cudaMatrixAdd(Msortie, B, Msortie)
+    float sum = 0;
+    for (int i = 0; i < 5; i++){
+        for (int j = 0; j < 5; j++){
+            sum += W[i + j * 5 + blockIdx.x * 5 * 5] * Mentree[(threadIdx.x + i) + (threadIdx.y + j) * (blockDim.x+4)];
+        }
+    }
+    Msortie[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] = activation_softmax(sum);
 }
 
 int main(){
