@@ -1,4 +1,4 @@
-# TP HARDWARE DELABARRE GILLET
+# TP HSP SIA G2 DELABARRE GILLET
 TP Hardware for signal processing : Implémentation d'un CNN - LeNet-5 sur GPU
 
 
