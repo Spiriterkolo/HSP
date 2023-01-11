@@ -6,12 +6,12 @@
 
 //Initialisation de la matrice avec des valeurs aléatoires entre 0 et 1
 void MatrixInit(float *M, int n, int p){
-    float max = RAND_MAX;
-    for(int i=0; i<n; i++){
-        for(int j=0; j<p; j++){
-            M[j + i*p] = rand() / max ;
-        }
-    }
+     float max = RAND_MAX;
+     for(int i=0; i<n; i++){
+         for(int j=0; j<p; j++){
+             M[j + i*p] = rand() / max ;
+         }
+     }
 }
 
 //Initialisation avec uniquement des 0
@@ -32,7 +32,9 @@ void MatrixInitTest(float *M, int n, int p){
     }
 }
 
+
 //Initialisation avec des valeurs qui augmentent avec les lignes et les colonnes
+
 void MatrixInitTest2(float *M, int n, int p){
     for(int i=0; i<n; i++){
         for(int j=0; j<p; j++){
@@ -65,7 +67,9 @@ void MatrixAdd(float *M1, float *M2, float *Mout, int n, int p){
 
 //Addition de matrices sur GPU
 __global__ void cudaMatrixAdd(float *M1, float *M2, float *Mout){
+
     Mout[threadIdx.x + blockIdx.x * blockDim.x] = M1[threadIdx.x + blockIdx.x * blockDim.x] + M2[threadIdx.x + blockIdx.x * blockDim.x];
+
 }
 
 //Multiplication de 2 matrices sur CPU
@@ -146,7 +150,8 @@ __global__ void cudaDownSampling(float *Conved, float *Cout){
 //Premier dense layer
 __global__ void cudaDensetanh1(float *Min, float *W, float *B, float *Mout) {
     for (int i = 0; i < 120; i++) {
-        Mout[i] += Min[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] *
+
+        Mout[i] = Min[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y] *
                   W[threadIdx.x + threadIdx.y * blockDim.y + blockIdx.x * blockDim.x * blockDim.y +
                     i * gridDim.x * blockDim.x * blockDim.y];
     }
