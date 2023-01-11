@@ -53,7 +53,7 @@ Released date : Q3-2013
 
 **Part  2** Premières couches du réseau de neurone LeNet-5 : Convolution 2D et subsampling
 
-L'architecture du réseau LeNet-5 est composé de plusieurs couches :
+L'architecture du réseau LeNet-5 est composé de plusieurs couches, dont voici les premières :
 
 Layer 1- Couche d'entrée de taille 32x32 correspondant à la taille des images de la base de donnée MNIST
 
@@ -62,3 +62,7 @@ Layer 2- Convolution avec 6 noyaux de convolution de taille 5x5. La taille résu
 Layer 3- Sous-échantillonnage d'un facteur 2. La taille résultantes des données est donc de 6x14x14.
 
 **Part 3** Dernières couches et récupération de vrais poids
+
+Architecture finale de notre réseau Net-5 :
+
+![image](https://user-images.githubusercontent.com/93649903/211815911-69e96ed1-fcc4-40d3-b22e-1d5999d002af.png)
