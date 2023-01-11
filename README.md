@@ -84,3 +84,6 @@ Dont les différentes étapes sont (en Python):
 • Dense(84, activation='tanh')
 
 • Dense(10, activation='softmax')
+
+Avec des poids et des biais provenant d'un entrainement précédant, il faut les initialiser dans W1, W2, W3, B1, B2 et B3.
+On peut ensuite tester le modèle sur n'importe quelle image 28x28x1.
