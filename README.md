@@ -66,3 +66,21 @@ Layer 3- Sous-échantillonnage d'un facteur 2. La taille résultantes des donné
 Architecture finale de notre réseau Net-5 :
 
 ![image](https://user-images.githubusercontent.com/93649903/211815911-69e96ed1-fcc4-40d3-b22e-1d5999d002af.png)
+
+Dont les différentes étapes sont (en Python):
+
+• Conv2D(6, kernel_size=5, strides=1,  activation='tanh', input_shape=train_x[0].shape, padding='same')
+
+• AveragePooling2D()
+
+• Conv2D(16, kernel_size=5, strides=1, activation='tanh', padding='valid')
+
+• AveragePooling2D()
+
+• Flatten() (que l'on ne fera pas ici puisque l'on travaille avec des vecteurs)
+
+• Dense(120, activation='tanh')
+
+• Dense(84, activation='tanh')
+
+• Dense(10, activation='softmax')
